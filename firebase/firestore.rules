@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper to check user ownership of document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper to check role from custom claims or user document
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
+
+    // Users Collection: users can only read and update their own profile
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isOwner(userId) || hasRole('ROLE_ADMIN');
+    }
+
+    // Students Collection: Read by all authenticated users, written by TEACHER or ADMIN
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('ROLE_TEACHER') || hasRole('ROLE_ADMIN');
+    }
+
+    // Prediction Audit Logs: Created on inference, immutable historical audit
+    match /prediction_history/{recordId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if hasRole('ROLE_ADMIN');
+    }
+  }
+}

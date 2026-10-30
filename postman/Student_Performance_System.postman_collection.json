@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "Student Academic Performance Prediction System (SDG 4)",
+    "_postman_id": "9a38f321-4d1a-42b7-84bc-299f1c7d23a1",
+    "description": "Comprehensive Postman test collection for Experiments 2, 7, and 8 covering CRUD operations, JWT authentication, Decision Tree ML prediction, and error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication (Exp 8)",
+      "item": [
+        {
+          "name": "Register New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"faculty_user\",\n  \"password\": \"Faculty@123\",\n  \"fullName\": \"Dr. Priya Sen\",\n  \"email\": \"priya.sen@campus.edu\",\n  \"role\": \"ROLE_TEACHER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login (Extract JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"jwtToken\", jsonData.token);",
+                  "    console.log(\"Saved jwtToken into environment\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"teacher\",\n  \"password\": \"Teacher@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Firebase ID Token Verification Bridge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"mock_firebase_id_token_educator@campus.edu\",\n  \"role\": \"ROLE_TEACHER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/firebase-verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "firebase-verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Student CRUD APIs (Exp 2 & 7)",
+      "item": [
+        {
+          "name": "GET All Students (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students?page=0&size=10&sort=id,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sort", "value": "id,desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Single Student by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}"]
+            }
+          }
+        },
+        {
+          "name": "POST Create Student (Triggers Decision Tree ML)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"studentId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"STU2040\",\n  \"name\": \"Kunal Aggarwal\",\n  \"email\": \"kunal@campus.edu\",\n  \"course\": \"Computer Science\",\n  \"semester\": 4,\n  \"attendancePercentage\": 52.0,\n  \"studyHoursPerDay\": 2.0,\n  \"previousMarks\": 42.0,\n  \"assignmentCompletion\": 45.0,\n  \"internalMarks\": 11.0,\n  \"missedClasses\": 18\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "PUT Update Student (Re-evaluates Prediction)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"STU2040\",\n  \"name\": \"Kunal Aggarwal\",\n  \"email\": \"kunal@campus.edu\",\n  \"course\": \"Computer Science\",\n  \"semester\": 4,\n  \"attendancePercentage\": 82.0,\n  \"studyHoursPerDay\": 5.0,\n  \"previousMarks\": 74.0,\n  \"assignmentCompletion\": 85.0,\n  \"internalMarks\": 23.0,\n  \"missedClasses\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}"]
+            }
+          }
+        },
+        {
+          "name": "DELETE Student by ID (Requires ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET At-Risk Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/at-risk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "at-risk"]
+            }
+          }
+        },
+        {
+          "name": "GET Dashboard Aggregated Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Decision Tree ML Service APIs",
+      "item": [
+        {
+          "name": "POST Predict Single Student Performance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"STU999\",\n  \"name\": \"Test Candidate\",\n  \"course\": \"Data Science\",\n  \"semester\": 3,\n  \"attendancePercentage\": 94.0,\n  \"studyHoursPerDay\": 7.0,\n  \"previousMarks\": 88.0,\n  \"assignmentCompletion\": 95.0,\n  \"internalMarks\": 28.0,\n  \"missedClasses\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/predict",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predict"]
+            }
+          }
+        },
+        {
+          "name": "POST Predict Batch Students",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"studentId\": \"B1\",\n    \"name\": \"Candidate 1\",\n    \"attendancePercentage\": 92.0,\n    \"studyHoursPerDay\": 6.0,\n    \"previousMarks\": 85.0,\n    \"assignmentCompletion\": 90.0,\n    \"internalMarks\": 27.0,\n    \"missedClasses\": 2\n  },\n  {\n    \"studentId\": \"B2\",\n    \"name\": \"Candidate 2\",\n    \"attendancePercentage\": 50.0,\n    \"studyHoursPerDay\": 1.5,\n    \"previousMarks\": 40.0,\n    \"assignmentCompletion\": 45.0,\n    \"internalMarks\": 10.0,\n    \"missedClasses\": 20\n  }\n]"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/predict/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predict", "batch"]
+            }
+          }
+        },
+        {
+          "name": "GET Model Evaluation Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/model/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "model", "metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Error Handling Verification",
+      "item": [
+        {
+          "name": "Validation Error (400 Bad Request) — Out of Range Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"STU_ERR\",\n  \"name\": \"Invalid Student\",\n  \"email\": \"invalid@campus.edu\",\n  \"course\": \"Computer Science\",\n  \"semester\": 4,\n  \"attendancePercentage\": 140.0,\n  \"studyHoursPerDay\": 4.0,\n  \"previousMarks\": 70.0,\n  \"assignmentCompletion\": 80.0,\n  \"internalMarks\": 20.0,\n  \"missedClasses\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Unauthorized Error (401 Unauthorized) — Missing Token",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Not Found Error (404 Not Found) — Non-existent ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "999999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
